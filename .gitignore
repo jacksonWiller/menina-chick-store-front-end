@@ -25,6 +25,7 @@ package-lock.json
 *.njsproj
 *.sln
 *.sw?
+.npm
 
 # amplify
 .amplify
