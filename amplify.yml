@@ -15,8 +15,8 @@ frontend:
   phases:
     preBuild:
       commands:
-        - nvm install 24.10.0
-        - nvm use 24.10.0
+        - nvm install 20
+        - nvm use 20
     build:
       commands:
         - npm run build
