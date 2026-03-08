@@ -23,17 +23,45 @@ interface Product {
 
 // Função para converter ApiProduct para Product
 const mapApiProductToProduct = (apiProduct: ApiProduct): Product => {
+  const name = apiProduct.name.toLowerCase();
+  let sizes: string[] | undefined = undefined;
+
+  if (
+    name.includes("blusa") ||
+    name.includes("camisa") ||
+    name.includes("top") ||
+    name.includes("cropped") ||
+    name.includes("t-shirt") ||
+    name.includes("t shirt") ||
+    name.includes("camiseta") ||
+    name.includes("regata")
+  ) {
+    sizes = ["P", "M", "G", "GG"];
+  } else if (name.includes("vestido")) {
+    sizes = ["P", "M"];
+  } else if (
+    name.includes("short") ||
+    name.includes("calça") ||
+    name.includes("calca") ||
+    name.includes("jeans") ||
+    name.includes("legging")
+  ) {
+    sizes = ["36", "38", "40", "42", "44"];
+  } else if (name.includes("saia")) {
+    sizes = ["36", "38", "40", "42", "44"];
+  }
+
   return {
     id: apiProduct.productId,
     name: apiProduct.name,
     description: apiProduct.description || apiProduct.title || null,
     price: apiProduct.price,
     original_price: apiProduct.compareAtPrice,
-    image: apiProduct.image, // Mudança aqui: usar apiProduct.image
+    image: apiProduct.image,
     category: apiProduct.brand,
     stock: apiProduct.stockQuantity,
     is_new: false,
-    sizes: undefined,
+    sizes,
   };
 };
 
