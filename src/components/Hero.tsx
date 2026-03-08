@@ -1,7 +1,12 @@
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-image.jpg";
 
-const Hero = () => {
+interface HeroProps {
+  onShowCollection: () => void;
+  onShowNewProducts: () => void;
+}
+
+const Hero = ({ onShowCollection, onShowNewProducts }: HeroProps) => {
   return (
     <section className="relative min-h-screen flex items-center pt-20">
       {/* Background Image */}
@@ -21,18 +26,17 @@ const Hero = () => {
             Nova Coleção 2024
           </span>
           <h1 className="font-display text-5xl md:text-7xl font-light text-foreground mb-6 leading-tight">
-            Elegância que{" "}
-            <span className="italic text-gradient">encanta</span>
+            Elegância que <span className="italic text-gradient">encanta</span>
           </h1>
           <p className="font-body text-lg text-muted-foreground mb-8 leading-relaxed">
-            Descubra peças exclusivas que combinam sofisticação e conforto. 
+            Descubra peças exclusivas que combinam sofisticação e conforto.
             Vista-se com estilo e autenticidade.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button variant="hero" size="lg">
+            <Button variant="hero" size="lg" onClick={onShowCollection}>
               Ver Coleção
             </Button>
-            <Button variant="heroOutline" size="lg">
+            <Button variant="heroOutline" size="lg" onClick={onShowNewProducts}>
               Novidades
             </Button>
           </div>

@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, ShoppingBag, Heart, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { getStaticProduct, isStaticProductId } from "@/data/staticProducts";
+import { getProductById, ApiProduct } from "@/productApi";
 
 interface Product {
   id: string;
@@ -14,12 +13,28 @@ interface Product {
   description: string | null;
   price: number;
   original_price: number | null;
-  image_url: string | null;
+  image: string | null;
   category: string | null;
   stock: number | null;
   is_new: boolean | null;
   sizes?: string[];
 }
+
+// Função para converter ApiProduct para Product
+const mapApiProductToProduct = (apiProduct: ApiProduct): Product => {
+  return {
+    id: apiProduct.productId,
+    name: apiProduct.name,
+    description: apiProduct.description || apiProduct.title || null,
+    price: apiProduct.price,
+    original_price: apiProduct.compareAtPrice,
+    image: apiProduct.image, // Mudança aqui: usar apiProduct.image
+    category: apiProduct.brand,
+    stock: apiProduct.stockQuantity,
+    is_new: false,
+    sizes: undefined,
+  };
+};
 
 const ProductDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,38 +49,23 @@ const ProductDetails = () => {
     const fetchProduct = async () => {
       if (!id) return;
 
-      // Check if it's a static product first
-      if (isStaticProductId(id)) {
-        const staticProduct = getStaticProduct(id);
-        if (staticProduct) {
-          setProduct(staticProduct);
-          setLoading(false);
+      try {
+        const apiProduct = await getProductById(id);
+
+        if (!apiProduct) {
+          toast.error("Produto não encontrado");
+          navigate("/");
           return;
         }
-      }
 
-      // Fetch from database
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error fetching product:", error);
-        toast.error("Produto não encontrado");
+        const mappedProduct = mapApiProductToProduct(apiProduct);
+        setProduct(mappedProduct);
+        setLoading(false);
+      } catch (error) {
+        console.error("Erro ao buscar produto:", error);
+        toast.error("Erro ao carregar o produto");
         navigate("/");
-        return;
       }
-
-      if (!data) {
-        toast.error("Produto não encontrado");
-        navigate("/");
-        return;
-      }
-
-      setProduct(data);
-      setLoading(false);
     };
 
     fetchProduct();
@@ -92,10 +92,7 @@ const ProductDetails = () => {
     const message = `Olá! Tenho interesse no produto:\n\n*${product.name}*${sizePart}${qtyPart}\nPreço: ${formatPrice(product.price)}\n\nLink: ${productUrl}`;
 
     const whatsappUrl = `https://wa.me/553898707072?text=${encodeURIComponent(message)}`;
-    const newWindow = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-    if (!newWindow) {
-      window.location.href = whatsappUrl;
-    }
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
   if (loading) {
@@ -103,7 +100,9 @@ const ProductDetails = () => {
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center pt-20">
-          <div className="animate-pulse text-muted-foreground">Carregando...</div>
+          <div className="animate-pulse text-muted-foreground">
+            Carregando...
+          </div>
         </main>
         <Footer />
       </div>
@@ -116,7 +115,9 @@ const ProductDetails = () => {
         <Header />
         <main className="flex-1 flex items-center justify-center pt-20">
           <div className="text-center">
-            <h1 className="text-2xl font-display mb-4">Produto não encontrado</h1>
+            <h1 className="text-2xl font-display mb-4">
+              Produto não encontrado
+            </h1>
             <Button onClick={() => navigate("/")}>Voltar para a loja</Button>
           </div>
         </main>
@@ -142,7 +143,7 @@ const ProductDetails = () => {
             {/* Product Image */}
             <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted">
               <img
-                src={product.image_url || "/placeholder.svg"}
+                src={product.image || "/placeholder.svg"}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -156,7 +157,9 @@ const ProductDetails = () => {
             {/* Product Info */}
             <div className="flex flex-col">
               <span className="text-sm text-muted-foreground uppercase tracking-wider mb-2">
-                {product.category || "Produto"}
+                {product.category && product.category !== "string"
+                  ? product.category
+                  : undefined}
               </span>
               <h1 className="font-display text-4xl md:text-5xl font-light mb-4">
                 {product.name}
@@ -166,14 +169,15 @@ const ProductDetails = () => {
                 <span className="font-body text-3xl font-semibold text-foreground">
                   {formatPrice(product.price)}
                 </span>
-                {product.original_price && (
-                  <span className="font-body text-xl text-muted-foreground line-through">
-                    {formatPrice(product.original_price)}
-                  </span>
-                )}
+                {typeof product.original_price === "number" &&
+                  product.original_price > 0 && (
+                    <span className="font-body text-xl text-muted-foreground line-through">
+                      {formatPrice(product.original_price)}
+                    </span>
+                  )}
               </div>
 
-              {product.description && (
+              {product.description && product.description !== "string" && (
                 <p className="text-muted-foreground mb-8 leading-relaxed">
                   {product.description}
                 </p>
@@ -182,7 +186,9 @@ const ProductDetails = () => {
               {/* Size Selector */}
               {product.sizes && product.sizes.length > 0 && (
                 <div className="mb-8">
-                  <span className="text-sm font-medium block mb-3">Tamanho:</span>
+                  <span className="text-sm font-medium block mb-3">
+                    Tamanho:
+                  </span>
                   <div className="flex flex-wrap gap-2">
                     {product.sizes.map((size) => (
                       <button
@@ -201,7 +207,7 @@ const ProductDetails = () => {
                 </div>
               )}
 
-              {/* Quantity Selector */}
+              {/* Quantidade */}
               <div className="flex items-center gap-4 mb-8">
                 <span className="text-sm font-medium">Quantidade:</span>
                 <div className="flex items-center border border-border rounded-full">
@@ -212,11 +218,16 @@ const ProductDetails = () => {
                   >
                     <Minus size={18} />
                   </button>
-                  <span className="w-12 text-center font-medium">{quantity}</span>
+                  <span className="w-12 text-center font-medium">
+                    {quantity > 0 ? quantity : ""}
+                  </span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
                     className="p-3 hover:bg-muted transition-colors rounded-r-full"
-                    disabled={(product.stock ?? 0) > 0 && quantity >= (product.stock ?? 0)}
+                    disabled={
+                      (product.stock ?? 0) > 0 &&
+                      quantity >= (product.stock ?? 0)
+                    }
                   >
                     <Plus size={18} />
                   </button>
@@ -227,24 +238,22 @@ const ProductDetails = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   size="lg"
-                  className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                  className="flex-1 gap-2 bg-pink-600 hover:bg-pink-700"
                   onClick={handleWhatsApp}
                 >
                   <ShoppingBag size={20} />
                   Comprar via WhatsApp
                 </Button>
-                <Button size="lg" variant="outline" className="gap-2">
-                  <Heart size={20} />
-                  Favoritar
-                </Button>
               </div>
 
               {/* Stock Info */}
-              {product.stock && product.stock > 0 && product.stock < 10 && (
-                <p className="text-sm text-amber-600 mt-4">
-                  Apenas {product.stock} unidades em estoque!
-                </p>
-              )}
+              {typeof product.stock === "number" &&
+                product.stock > 0 &&
+                product.stock < 10 && (
+                  <p className="text-sm text-amber-600 mt-4">
+                    Apenas {product.stock} unidades em estoque!
+                  </p>
+                )}
             </div>
           </div>
         </div>

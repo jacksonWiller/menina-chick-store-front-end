@@ -4,7 +4,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -39,9 +46,7 @@ const Login = () => {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="font-display text-3xl">Entrar</CardTitle>
-            <CardDescription>
-              Entre na sua conta para continuar
-            </CardDescription>
+            <CardDescription>Entre na sua conta para continuar</CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
