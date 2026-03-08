@@ -4,4 +4,5 @@ export const APP_CONFIG = {
   USE_MOCK_DATA: true, // Muda para false quando conectar à API
   API_URL: "", // URL da API quando disponível
   WHATSAPP_NUMBER: "553898707072",
+  MAX_ITEMS_PER_PRODUCT: 6, // Limite máximo de unidades por produto no carrinho
 };

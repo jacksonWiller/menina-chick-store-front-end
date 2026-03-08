@@ -15,6 +15,7 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { APP_CONFIG } from "@/config/appConfig";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -186,7 +187,11 @@ const Cart = () => {
                               onClick={() =>
                                 updateQuantity(item.id, item.quantity + 1)
                               }
-                              className="p-2 hover:bg-muted transition-colors rounded-r-full"
+                              className="p-2 hover:bg-muted transition-colors rounded-r-full disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={
+                                item.quantity >=
+                                APP_CONFIG.MAX_ITEMS_PER_PRODUCT
+                              }
                             >
                               <Plus size={16} />
                             </button>

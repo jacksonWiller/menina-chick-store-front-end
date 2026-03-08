@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getProductById, ApiProduct } from "@/productApi";
+import { APP_CONFIG } from "@/config/appConfig";
 
 interface Product {
   id: string;
@@ -213,7 +214,7 @@ const ProductDetails = () => {
                 <div className="flex items-center border border-border rounded-full">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-3 hover:bg-muted transition-colors rounded-l-full"
+                    className="p-3 hover:bg-muted transition-colors rounded-l-full disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={quantity <= 1}
                   >
                     <Minus size={18} />
@@ -222,12 +223,29 @@ const ProductDetails = () => {
                     {quantity > 0 ? quantity : ""}
                   </span>
                   <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="p-3 hover:bg-muted transition-colors rounded-r-full"
-                    disabled={
-                      (product.stock ?? 0) > 0 &&
-                      quantity >= (product.stock ?? 0)
-                    }
+                    onClick={() => {
+                      if (quantity >= APP_CONFIG.MAX_ITEMS_PER_PRODUCT) {
+                        toast.error(
+                          `Você pode adicionar no máximo ${APP_CONFIG.MAX_ITEMS_PER_PRODUCT} unidades deste produto`,
+                        );
+                        return;
+                      }
+                      if (
+                        (product.stock ?? 0) > 0 &&
+                        quantity >= (product.stock ?? 0)
+                      ) {
+                        toast.error("Estoque insuficiente");
+                        return;
+                      }
+                      setQuantity(quantity + 1);
+                    }}
+                    className={`p-3 transition-colors rounded-r-full ${
+                      quantity >= APP_CONFIG.MAX_ITEMS_PER_PRODUCT ||
+                      ((product.stock ?? 0) > 0 &&
+                        quantity >= (product.stock ?? 0))
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:bg-muted cursor-pointer"
+                    }`}
                   >
                     <Plus size={18} />
                   </button>

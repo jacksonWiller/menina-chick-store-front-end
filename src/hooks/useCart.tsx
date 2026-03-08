@@ -1,4 +1,10 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  ReactNode,
+} from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
@@ -31,7 +37,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 // Funções helper para localStorage
-const CART_STORAGE_KEY = 'mock-cart-items';
+const CART_STORAGE_KEY = "mock-cart-items";
 
 const getStoredCart = (): CartItem[] => {
   try {
@@ -54,7 +60,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const fetchCart = async () => {
     if (APP_CONFIG.USE_MOCK_DATA) {
       // Modo mockado - carregar do localStorage
-      await new Promise(resolve => setTimeout(resolve, 300)); // Simular latência
+      await new Promise((resolve) => setTimeout(resolve, 300)); // Simular latência
       const storedItems = getStoredCart();
       setItems(storedItems);
       setLoading(false);
@@ -70,7 +76,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("cart_items")
-        .select(`
+        .select(
+          `
           id,
           product_id,
           quantity,
@@ -80,7 +87,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             price,
             image_url
           )
-        `)
+        `,
+        )
         .eq("user_id", user.id);
 
       if (error) throw error;
@@ -89,7 +97,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         id: item.id,
         product_id: item.product_id,
         quantity: item.quantity,
-        product: item.product
+        product: item.product,
       }));
 
       setItems(cartItems);
@@ -107,23 +115,41 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const addToCart = async (productId: string, quantity: number = 1) => {
     if (APP_CONFIG.USE_MOCK_DATA) {
       // Modo mockado
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const product = staticProducts.find(p => p.id === productId);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const product = staticProducts.find((p) => p.id === productId);
       if (!product) {
         toast.error("Produto não encontrado");
         return;
       }
 
       const currentItems = getStoredCart();
-      const existingItem = currentItems.find(item => item.product_id === productId);
+      const existingItem = currentItems.find(
+        (item) => item.product_id === productId,
+      );
+
+      // Verificar limite de 6 itens por produto
+      if (existingItem) {
+        const newQuantity = existingItem.quantity + quantity;
+        if (newQuantity > APP_CONFIG.MAX_ITEMS_PER_PRODUCT) {
+          toast.error(
+            `Você pode adicionar no máximo ${APP_CONFIG.MAX_ITEMS_PER_PRODUCT} unidades deste produto`,
+          );
+          return;
+        }
+      } else if (quantity > APP_CONFIG.MAX_ITEMS_PER_PRODUCT) {
+        toast.error(
+          `Você pode adicionar no máximo ${APP_CONFIG.MAX_ITEMS_PER_PRODUCT} unidades deste produto`,
+        );
+        return;
+      }
 
       let updatedItems: CartItem[];
       if (existingItem) {
-        updatedItems = currentItems.map(item =>
+        updatedItems = currentItems.map((item) =>
           item.product_id === productId
             ? { ...item, quantity: item.quantity + quantity }
-            : item
+            : item,
         );
       } else {
         const newItem: CartItem = {
@@ -134,8 +160,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             id: product.id,
             name: product.name,
             price: product.price,
-            image_url: product.image_url
-          }
+            image_url: product.image_url,
+          },
         };
         updatedItems = [...currentItems, newItem];
       }
@@ -153,17 +179,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       // Check if item already exists in cart
-      const existingItem = items.find(item => item.product_id === productId);
+      const existingItem = items.find((item) => item.product_id === productId);
 
       if (existingItem) {
+        const newQuantity = existingItem.quantity + quantity;
+        if (newQuantity > APP_CONFIG.MAX_ITEMS_PER_PRODUCT) {
+          toast.error(
+            `Você pode adicionar no máximo ${APP_CONFIG.MAX_ITEMS_PER_PRODUCT} unidades deste produto`,
+          );
+          return;
+        }
+
         // Update quantity
         const { error } = await supabase
           .from("cart_items")
-          .update({ quantity: existingItem.quantity + quantity })
+          .update({ quantity: newQuantity })
           .eq("id", existingItem.id);
 
         if (error) throw error;
       } else {
+        if (quantity > APP_CONFIG.MAX_ITEMS_PER_PRODUCT) {
+          toast.error(
+            `Você pode adicionar no máximo ${APP_CONFIG.MAX_ITEMS_PER_PRODUCT} unidades deste produto`,
+          );
+          return;
+        }
+
         // Add new item
         const { error } = await supabase
           .from("cart_items")
@@ -182,9 +223,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const removeFromCart = async (itemId: string) => {
     if (APP_CONFIG.USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       const currentItems = getStoredCart();
-      const updatedItems = currentItems.filter(item => item.id !== itemId);
+      const updatedItems = currentItems.filter((item) => item.id !== itemId);
       setStoredCart(updatedItems);
       setItems(updatedItems);
       toast.success("Produto removido do carrinho");
@@ -213,11 +254,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    if (quantity > APP_CONFIG.MAX_ITEMS_PER_PRODUCT) {
+      toast.error(
+        `Você pode adicionar no máximo ${APP_CONFIG.MAX_ITEMS_PER_PRODUCT} unidades deste produto`,
+      );
+      return;
+    }
+
     if (APP_CONFIG.USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       const currentItems = getStoredCart();
-      const updatedItems = currentItems.map(item =>
-        item.id === itemId ? { ...item, quantity } : item
+      const updatedItems = currentItems.map((item) =>
+        item.id === itemId ? { ...item, quantity } : item,
       );
       setStoredCart(updatedItems);
       setItems(updatedItems);
@@ -263,19 +311,24 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0,
+  );
 
   return (
-    <CartContext.Provider value={{
-      items,
-      loading,
-      addToCart,
-      removeFromCart,
-      updateQuantity,
-      clearCart,
-      totalItems,
-      subtotal
-    }}>
+    <CartContext.Provider
+      value={{
+        items,
+        loading,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        totalItems,
+        subtotal,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
